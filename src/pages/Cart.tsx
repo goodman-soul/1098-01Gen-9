@@ -11,11 +11,20 @@ const Cart = () => {
   const getPurchaseTotal = useCartStore((state) => state.getPurchaseTotal);
   const removePurchaseItem = useCartStore((state) => state.removePurchaseItem);
   const updatePurchaseQuantity = useCartStore((state) => state.updatePurchaseQuantity);
+  const clearPurchase = useCartStore((state) => state.clearPurchase);
 
   const total = getPurchaseTotal();
 
   const handleCheckout = () => {
-    alert('结算功能演示：订单已提交！');
+    const orderNo = `DD${Date.now().toString().slice(-10)}`;
+    const orderData = {
+      items: [...purchaseItems],
+      total: getPurchaseTotal(),
+      orderNo,
+    };
+    sessionStorage.setItem('purchase-order', JSON.stringify(orderData));
+    clearPurchase();
+    navigate('/purchase/success');
   };
 
   return (

@@ -17,10 +17,21 @@ import { useCartStore } from '@/store/useCartStore';
 import { resorts } from '@/data/resorts';
 import { formatPrice } from '@/utils/price';
 import { getDaysDiff, formatDate } from '@/utils/date';
+import type { SelectedEquipment } from '@/types';
+
+interface SavedOrderData {
+  resortId: string;
+  startDate: string;
+  endDate: string;
+  days: number;
+  totalPrice: number;
+  items: SelectedEquipment[];
+}
 
 const RentalConfirm = () => {
   const navigate = useNavigate();
   const [confirmed, setConfirmed] = useState(false);
+  const [orderData, setOrderData] = useState<SavedOrderData | null>(null);
 
   const resortId = useFilterStore((state) => state.resortId);
   const startDate = useFilterStore((state) => state.startDate);
@@ -29,50 +40,36 @@ const RentalConfirm = () => {
   const getRentalTotal = useCartStore((state) => state.getRentalTotal);
   const clearRental = useCartStore((state) => state.clearRental);
 
-  const resort = resorts.find((r) => r.id === resortId);
+  const resort = resorts.find((r) => r.id === (orderData?.resortId || resortId));
   const pickupPoint = resort?.pickupPoints[0];
-  const days = startDate && endDate ? getDaysDiff(startDate, endDate) : 0;
-  const totalPrice = getRentalTotal(days);
+  const days = (orderData?.startDate && orderData?.endDate)
+    ? getDaysDiff(orderData.startDate, orderData.endDate)
+    : (startDate && endDate ? getDaysDiff(startDate, endDate) : 0);
+  const totalPrice = orderData ? orderData.totalPrice : getRentalTotal(days);
+  const displayItems = orderData ? orderData.items : rentalItems;
 
   const handleConfirm = () => {
+    const currentDays = startDate && endDate ? getDaysDiff(startDate, endDate) : 0;
+    setOrderData({
+      resortId: resortId!,
+      startDate: startDate!,
+      endDate: endDate!,
+      days: currentDays,
+      totalPrice: getRentalTotal(currentDays),
+      items: [...rentalItems],
+    });
     setConfirmed(true);
     clearRental();
   };
 
-  if (!resortId || !startDate || !endDate || rentalItems.length === 0) {
-    return (
-      <div className="min-h-screen flex flex-col bg-snow-50">
-        <Header />
-        <main className="flex-1 flex items-center justify-center py-12">
-          <div className="card p-8 text-center max-w-md">
-            <Package className="w-16 h-16 mx-auto text-frost-300 mb-4" />
-            <h2 className="text-xl font-bold text-frost-800 mb-2">
-              租赁信息不完整
-            </h2>
-            <p className="text-frost-500 mb-6">
-              请先选择雪场、日期和装备
-            </p>
-            <button
-              onClick={() => navigate('/')}
-              className="px-6 py-2.5 bg-gradient-ice text-white font-medium rounded-xl hover:shadow-lg hover:shadow-ice-500/30 transition-all"
-            >
-              返回首页
-            </button>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
-
-  if (confirmed) {
+  if (confirmed && orderData) {
     return (
       <div className="min-h-screen flex flex-col bg-snow-50">
         <Header />
         <main className="flex-1 py-12">
           <div className="container mx-auto px-4 max-w-lg">
-            <div className="card p-8 text-center space-y-6">
-              <div className="w-20 h-20 mx-auto bg-emerald-100 rounded-full flex items-center justify-center">
+            <div className="card p-8 text-center space-y-6 animate-fade-in">
+              <div className="w-20 h-20 mx-auto bg-emerald-100 rounded-full flex items-center justify-center animate-bounce">
                 <CheckCircle className="w-10 h-10 text-emerald-500" />
               </div>
 
@@ -94,12 +91,12 @@ const RentalConfirm = () => {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-frost-500">租赁天数</span>
-                  <span className="text-frost-700">{days} 天</span>
+                  <span className="text-frost-700">{orderData.days} 天</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-frost-500">支付金额</span>
                   <span className="text-lg font-bold text-ice-700">
-                    {formatPrice(totalPrice)}
+                    {formatPrice(orderData.totalPrice)}
                   </span>
                 </div>
               </div>
@@ -141,6 +138,32 @@ const RentalConfirm = () => {
                 返回首页
               </button>
             </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!resortId || !startDate || !endDate || rentalItems.length === 0) {
+    return (
+      <div className="min-h-screen flex flex-col bg-snow-50">
+        <Header />
+        <main className="flex-1 flex items-center justify-center py-12">
+          <div className="card p-8 text-center max-w-md">
+            <Package className="w-16 h-16 mx-auto text-frost-300 mb-4" />
+            <h2 className="text-xl font-bold text-frost-800 mb-2">
+              租赁信息不完整
+            </h2>
+            <p className="text-frost-500 mb-6">
+              请先选择雪场、日期和装备
+            </p>
+            <button
+              onClick={() => navigate('/')}
+              className="px-6 py-2.5 bg-gradient-ice text-white font-medium rounded-xl hover:shadow-lg hover:shadow-ice-500/30 transition-all"
+            >
+              返回首页
+            </button>
           </div>
         </main>
         <Footer />
